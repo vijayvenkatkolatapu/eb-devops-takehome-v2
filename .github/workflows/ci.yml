@@ -34,7 +34,7 @@ jobs:
         run: docker build -t my-service:${{ github.sha }} ./service
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@latest
+        uses: aquasecurity/trivy-action@0.31.0
         with:
           image-ref: my-service:${{ github.sha }}
           format: table
