@@ -1,35 +1,17 @@
-# syntax=docker/dockerfile:1.4
-
-# ---------- Builder Stage ----------
-FROM python:3.11.9-slim AS builder
-WORKDIR /app
-
-# Install build dependencies (if any) and the application requirements
+FROM python:3.11.9-slim-bookworm AS builder
+WORKDIR /build
 COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-warn-script-location --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# ---------- Runtime Stage ----------
-FROM python:3.11.9-slim AS runtime
+FROM python:3.11.9-slim-bookworm
 WORKDIR /app
-
-# Create a non‑root user
-RUN addgroup --system appgroup && \
-    adduser --system --ingroup appgroup --uid 1000 appuser
-
-# Copy installed packages from builder
+RUN addgroup --system appgroup \
+    && adduser --system --ingroup appgroup --uid 1000 appuser
 COPY --from=builder /install /usr/local
-
-# Copy application code
-COPY app.py .
-
-# Set environment variables (defaults can be overridden at runtime)
-ENV APP_NAME="myapp-take-home-assignment" \
-    VERSION="1.0.0" \
-    PORT=8080
-
-# Use non‑root user to run the app
+COPY --chown=appuser:appgroup app.py .
+ENV PORT=8080 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 USER appuser
-
 EXPOSE 8080
-CMD ["python", "app.py"]
+CMD ["python", "-u", "app.py"]

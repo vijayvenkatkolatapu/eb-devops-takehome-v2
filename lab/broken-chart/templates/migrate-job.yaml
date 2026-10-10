@@ -13,7 +13,7 @@ spec:
       labels:
         app: migrate
     spec:
-      restartPolicy: Always
+      restartPolicy: OnFailure
       containers:
         - name: migrate
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -25,8 +25,12 @@ spec:
               value: "migrate"
             - name: VERSION
               value: "2.0.0"
+            - name: PORT
+              value: "8080"
           securityContext:
             runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
             readOnlyRootFilesystem: true
             allowPrivilegeEscalation: false
             capabilities:

@@ -21,6 +21,7 @@ backend:
     APP_MODE: "api"
     APP_NAME: "backend"
     VERSION: "2.0.0"
+    PORT: "8080"
   resources:
     requests:
       cpu: "50m"
@@ -35,7 +36,8 @@ gateway:
     APP_MODE: "gateway"
     APP_NAME: "gateway"
     VERSION: "2.0.0"
-    BACKEND_URL: "http://backend.default.svc:8080"
+    PORT: "8080"
+    BACKEND_URL: "http://backend:8080"
   resources:
     requests:
       cpu: "50m"
@@ -50,6 +52,7 @@ worker:
     APP_MODE: "worker"
     APP_NAME: "worker"
     VERSION: "2.0.0"
+    PORT: "8080"
   resources:
     requests:
       cpu: "50m"
@@ -65,6 +68,7 @@ reporter:
     APP_MODE: "reporter"
     APP_NAME: "reporter"
     VERSION: "2.0.0"
+    PORT: "8080"
   resources:
     requests:
       cpu: "50m"
@@ -79,6 +83,7 @@ metrics:
     APP_MODE: "api"
     APP_NAME: "metrics"
     VERSION: "2.0.0"
+    PORT: "8080"
   resources:
     requests:
       cpu: "200m"

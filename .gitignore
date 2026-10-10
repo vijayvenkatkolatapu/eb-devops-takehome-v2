@@ -1,0 +1,7 @@
+helm.zip
+helm/
+eb-debug-app.bin
+eb-strings.txt
+*.pyc
+__pycache__/
+.DS_Store

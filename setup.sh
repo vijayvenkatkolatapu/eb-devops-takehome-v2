@@ -1,54 +1,44 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ---------------------------------------------------------------
-# One‑command bootstrap script (Part 3)
-# ---------------------------------------------------------------
-# 1️⃣ Create (or reuse) a Kind cluster named "demo"
-if ! kind get clusters | grep -q '^demo$'; then
-  echo "Creating Kind cluster 'demo'..."
-  kind create cluster --name demo \
-  	--image kindest/node:v1.28.0 \
-	--config kind-config.yaml \
-  	--wait 5m
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${ROOT}"
+
+CLUSTER="demo"
+RELEASE="demo"
+NS="demo"
+IMG_REPO="my-service"
+IMG_TAG="dev"
+IMG="${IMG_REPO}:${IMG_TAG}"
+INGRESS_MANIFEST="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.11.3/deploy/static/provider/kind/deploy.yaml"
+
+if ! kind get clusters | grep -qx "${CLUSTER}"; then
+  echo "Creating kind cluster '${CLUSTER}'..."
+  kind create cluster --name "${CLUSTER}" --config "${ROOT}/kind-config.yaml" --wait 5m
 else
-  echo "Kind cluster 'demo' already exists – reusing."
+  echo "Kind cluster '${CLUSTER}' already exists — reusing."
+  kubectl cluster-info --context "kind-${CLUSTER}" >/dev/null
 fi
 
-# 2️⃣ Install ingress‑nginx controller (idempotent)
-if ! kubectl get ns ingress-nginx >/dev/null 2>&1; then
-  echo "Installing ingress‑nginx controller..."
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-  # Wait for the controller to become ready (max 2 min)
-  kubectl wait --namespace ingress-nginx \
-    --for=condition=ready pod \
-    --selector=app.kubernetes.io/component=controller \
-    --timeout=120s
-else
-  echo "Ingress controller already present."
-fi
+echo "Installing/updating ingress-nginx..."
+kubectl apply -f "${INGRESS_MANIFEST}"
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=180s
 
-# 3️⃣ Build the Docker image and load it into Kind
-IMG_NAME="my-service:dev"
-echo "Building Docker image ${IMG_NAME}..."
-docker build -t "${IMG_NAME}" ./service
+echo "Building image ${IMG}..."
+docker build -t "${IMG}" "${ROOT}/service"
+echo "Loading image into kind..."
+kind load docker-image "${IMG}" --name "${CLUSTER}"
 
-echo "Loading image into Kind cluster..."
-kind load docker-image "${IMG_NAME}" --name demo
-
-# 4️⃣ Deploy (or upgrade) the Helm chart into namespace "demo"
-NS=demo
-if ! kubectl get ns "${NS}" >/dev/null 2>&1; then
-  kubectl create namespace "${NS}"
-fi
-
-echo "Installing/upgrading Helm release 'demo'..."
-helm upgrade --install demo ./chart \
+echo "Installing/upgrading Helm release '${RELEASE}' in namespace '${NS}'..."
+helm upgrade --install "${RELEASE}" "${ROOT}/chart" \
   --namespace "${NS}" \
   --create-namespace \
-  --set image.repository="${IMG_NAME%:*}" \
-  --set image.tag="${IMG_NAME#*:}" \
-  --set config.appName="demo-app" \
-  --set config.version="1.0.0"
+  --set image.repository="${IMG_REPO}" \
+  --set image.tag="${IMG_TAG}" \
+  --set image.pullPolicy=IfNotPresent \
+  --wait --timeout 180s
 
-echo "✅ Setup complete."
+echo "Setup complete."
