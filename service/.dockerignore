@@ -1,0 +1,8 @@
+# Ignore Python cache and OS files
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.log
+.env
+*.sqlite3
