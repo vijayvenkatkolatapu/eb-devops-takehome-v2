@@ -31,10 +31,10 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build image
-        run: docker build -t my-service:${{ github.sha }} ./service
+        run: docker build --pull -t my-service:${{ github.sha }} ./service
 
       - name: Scan image with Trivy
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: my-service:${{ github.sha }}
           format: table
